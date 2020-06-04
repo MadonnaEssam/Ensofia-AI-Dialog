@@ -17,6 +17,89 @@ function stripHtml(html) {
     //     temporalDivElement.textContent || temporalDivElement.innerText || ""
     //   );
 };
+function startRecording() {
+    var self = this;
+    console.log("recordButton clicked");
+    var constraints = {
+        audio: true,
+        video: false,
+    };
+    navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then(function (stream) {
+            console.log(
+                "getUserMedia() success, stream created, initializing Recorder.js ..."
+            );
+            var audioContext = new AudioContext();
+
+            window.gumStream = stream;
+
+            var input = audioContext.createMediaStreamSource(stream);
+
+            window.rec = new Recorder(input, {
+                numChannels: 1,
+            });
+
+            window.rec.record();
+            self.hideButton = false;
+            console.log("Recording started");
+        })
+        .catch(function (err) {
+            self.micIsOn = false;
+            console.error(err);
+        });
+};
+function googleTTS(txt) {
+    // this.muteSpeaker();
+    var audio = null,
+
+        txt = stripHtml(txt);
+    var self = this;
+    axios
+        .post(
+            "https://texttospeech.googleapis.com/v1/text:synthesize",
+            {
+                input: {
+                    text: txt,
+                },
+                voice: {
+                    languageCode: "en-US",
+                    name: "en-US-Wavenet-E",
+                    ssmlGender: "FEMALE",
+                },
+                audioConfig: {
+                    audioEncoding: "LINEAR16",
+                    pitch: 0,
+                    speakingRate: 0.9,
+                },
+            },
+            {
+                headers: {
+                    "x-goog-api-key": "AIzaSyCCvq8l4Lv0lh8oXsR1amaEf9jRU0nDxpo",
+                    "content-type": "application/json",
+                    "cache-control": "no-cache",
+                },
+            }
+        )
+        .then((response) => {
+            {
+                var byteCharacters = atob(response.data.audioContent);
+                var byteNumbers = new Array(byteCharacters.length);
+                for (var i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                var byteArray = new Uint8Array(byteNumbers);
+                var blob = new Blob([byteArray], {
+                    type: "audio/mp3",
+                });
+                var url = window.URL.createObjectURL(blob);
+                self.audio = new Audio(); // path to file
+                self.audio.src = url;
+                self.audio.play();
+            }
+            // });
+        });
+};
 module.exports = {
 
     ensofiaDialog: function (backendURL, msgText, callback) {
@@ -64,7 +147,7 @@ module.exports = {
                         }
                     }
                     // if (self.stopAudio == false) {
-                    //     self.googleTTS(textSpeak);
+                    googleTTS(textSpeak);
                     // }
 
                     messageList.push({
