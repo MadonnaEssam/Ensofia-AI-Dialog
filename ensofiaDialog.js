@@ -7,6 +7,8 @@ var msg
 
 if (backendURL && messages) {
 	sofiaConversation.ensofiaDialog(backendURL, msg, callback);
+	sofiaConversation.startRecording();
+	sofiaConversation.stopRecording(backendURL);
 }
 else {
 	console.log('Usage: ensofiaDialog {backendURL}');

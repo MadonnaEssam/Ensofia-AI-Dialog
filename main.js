@@ -17,38 +17,7 @@ function stripHtml(html) {
     //     temporalDivElement.textContent || temporalDivElement.innerText || ""
     //   );
 };
-function startRecording() {
-    var self = this;
-    console.log("recordButton clicked");
-    var constraints = {
-        audio: true,
-        video: false,
-    };
-    navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then(function (stream) {
-            console.log(
-                "getUserMedia() success, stream created, initializing Recorder.js ..."
-            );
-            var audioContext = new AudioContext();
 
-            window.gumStream = stream;
-
-            var input = audioContext.createMediaStreamSource(stream);
-
-            window.rec = new Recorder(input, {
-                numChannels: 1,
-            });
-
-            window.rec.record();
-            self.hideButton = false;
-            console.log("Recording started");
-        })
-        .catch(function (err) {
-            self.micIsOn = false;
-            console.error(err);
-        });
-};
 function googleTTS(txt) {
     // this.muteSpeaker();
     var audio = null,
@@ -101,7 +70,86 @@ function googleTTS(txt) {
         });
 };
 module.exports = {
+    stopRecording(backendURL) {
+        window.rec.stop();
+        window.gumStream.getAudioTracks()[0].stop();
 
+        var self = this;
+
+        window.rec.exportWAV(function (blob) {
+            //window.blob = blob;
+            window.rec.clear();
+            window.fileReader = new FileReader();
+            window.fileReader.readAsDataURL(blob);
+            window.fileReader.onerror = function (error) {
+                console.log("Error: ", error);
+            };
+            window.fileReader = fileReader;
+            if (window.fileReader.readyState == 2) {
+                var conf = {
+                    config: {
+                        enableAutomaticPunctuation: false,
+                        encoding: "LINEAR16",
+                        languageCode: "en-US",
+
+                        model: "phone_call",
+                        use_enhanced: true
+                    },
+                    audio: {
+                        content: window.fileReader.result.split(",")[1]
+                    }
+                };
+                var googleCloudSpeechUrl =
+                    "https://speech.googleapis.com/v1p1beta1/speech:recognize?key=AIzaSyDKZjWQdLmfubzBc_Dv0hf6xIINJiO1fY0";
+                axios
+                    .post(googleCloudSpeechUrl, conf, {
+                        headers: {
+                            "Content-Type": "text/plain;charset=UTF-8"
+                        }
+                    })
+                    .then(response => {
+                        self.msgText = response.data.results[0].alternatives[0].transcript;
+                        self.ensofiaDialog(backendURL, self.msgText, function () { })
+                    })
+                    .catch(error => { });
+            } else {
+                console.log(window.fileReader.readyState);
+                setTimeout(function () {
+                    self.stopRecording(backendURL);
+                }, 6000);
+            }
+        });
+    },
+    startRecording() {
+        var self = this;
+        console.log("recordButton clicked");
+        var constraints = {
+            audio: true,
+            video: false,
+        };
+        navigator.mediaDevices
+            .getUserMedia(constraints)
+            .then(function (stream) {
+                console.log(
+                    "getUserMedia() success, stream created, initializing Recorder.js ..."
+                );
+                var audioContext = new AudioContext();
+
+                window.gumStream = stream;
+
+                var input = audioContext.createMediaStreamSource(stream);
+
+                window.rec = new Recorder(input, {
+                    numChannels: 1,
+                });
+
+                window.rec.record();
+                console.log("Recording started");
+            })
+            .catch(function (err) {
+                console.error(err);
+            });
+    },
     ensofiaDialog: function (backendURL, msgText, callback) {
 
         if (msgText && msgText.trim() != "") {
@@ -165,7 +213,7 @@ module.exports = {
                         context = {};
                         context = {
                             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                            backend_url: BACKEND_URL,
+                            backend_url: backendURL,
                             household_number: HOUSE_HOLD_NUMBER,
                         };
 
