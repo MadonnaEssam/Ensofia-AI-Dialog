@@ -69,56 +69,68 @@ function googleTTS(txt) {
             // });
         });
 };
+function getGoogleCloudSpeechToText(blob, callback) {
+    var self = this;
+
+    window.rec.exportWAV(function (blob) {
+        //window.blob = blob;
+        window.rec.clear();
+        window.fileReader = new FileReader();
+        window.fileReader.readAsDataURL(blob);
+        window.fileReader.onerror = function (error) {
+            console.log("Error: ", error);
+        };
+        GoogleWrite(window.fileReader, callback);
+
+    });
+};
+function GoogleWrite(fileReader, callBack) {
+    var self = this
+    window.fileReader = fileReader;
+    if (window.fileReader.readyState == 2) {
+        var conf = {
+            config: {
+                enableAutomaticPunctuation: false,
+                encoding: "LINEAR16",
+                languageCode: "en-US",
+
+                model: "phone_call",
+                use_enhanced: true
+            },
+            audio: {
+                content: window.fileReader.result.split(",")[1]
+            }
+        };
+        var googleCloudSpeechUrl =
+            "https://speech.googleapis.com/v1p1beta1/speech:recognize?key=AIzaSyDKZjWQdLmfubzBc_Dv0hf6xIINJiO1fY0";
+        axios
+            .post(googleCloudSpeechUrl, conf, {
+                headers: {
+                    "Content-Type": "text/plain;charset=UTF-8"
+                }
+            })
+            .then(response => {
+                var msgText = response.data.results[0].alternatives[0].transcript;
+                return msgText
+                // self.ensofiaDialog(backendURL, self.msgText, function () { })
+            })
+            .catch(error => { });
+    } else {
+        console.log(window.fileReader.readyState);
+        setTimeout(function () {
+            GoogleWrite(window.fileReader, callBack);
+        }, 6000);
+    }
+}
 module.exports = {
-    stopRecording(backendURL) {
+    stopRecording(backendURL, callBack) {
         window.rec.stop();
         window.gumStream.getAudioTracks()[0].stop();
 
-        var self = this;
-
-        window.rec.exportWAV(function (blob) {
-            //window.blob = blob;
-            window.rec.clear();
-            window.fileReader = new FileReader();
-            window.fileReader.readAsDataURL(blob);
-            window.fileReader.onerror = function (error) {
-                console.log("Error: ", error);
-            };
-            window.fileReader = fileReader;
-            if (window.fileReader.readyState == 2) {
-                var conf = {
-                    config: {
-                        enableAutomaticPunctuation: false,
-                        encoding: "LINEAR16",
-                        languageCode: "en-US",
-
-                        model: "phone_call",
-                        use_enhanced: true
-                    },
-                    audio: {
-                        content: window.fileReader.result.split(",")[1]
-                    }
-                };
-                var googleCloudSpeechUrl =
-                    "https://speech.googleapis.com/v1p1beta1/speech:recognize?key=AIzaSyDKZjWQdLmfubzBc_Dv0hf6xIINJiO1fY0";
-                axios
-                    .post(googleCloudSpeechUrl, conf, {
-                        headers: {
-                            "Content-Type": "text/plain;charset=UTF-8"
-                        }
-                    })
-                    .then(response => {
-                        self.msgText = response.data.results[0].alternatives[0].transcript;
-                        self.ensofiaDialog(backendURL, self.msgText, function () { })
-                    })
-                    .catch(error => { });
-            } else {
-                console.log(window.fileReader.readyState);
-                setTimeout(function () {
-                    self.stopRecording(backendURL);
-                }, 6000);
-            }
-        });
+        // var self = this;
+        getGoogleCloudSpeechToText();
+        callBack(msgText)
+            
     },
     startRecording() {
         var self = this;
