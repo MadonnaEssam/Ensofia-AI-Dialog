@@ -110,8 +110,8 @@ function GoogleWrite(fileReader, callBack) {
                 }
             })
             .then(response => {
-                var msgText = response.data.results[0].alternatives[0].transcript;
-                return msgText
+                window.msgText = response.data.results[0].alternatives[0].transcript;
+                return window.msgText
                 // self.ensofiaDialog(backendURL, self.msgText, function () { })
             })
             .catch(error => { });
@@ -119,7 +119,7 @@ function GoogleWrite(fileReader, callBack) {
         console.log(window.fileReader.readyState);
         setTimeout(function () {
             GoogleWrite(window.fileReader, callBack);
-        }, 6000);
+        }, 300);
     }
 }
 module.exports = {
@@ -127,9 +127,12 @@ module.exports = {
         window.rec.stop();
         window.gumStream.getAudioTracks()[0].stop();
 
-        // var self = this;
+        var self = this;
         getGoogleCloudSpeechToText();
-        callBack(msgText)
+        setTimeout(function () {
+            var msgText=window.msgText
+            self.ensofiaDialog(backendURL, msgText,callBack)
+                }, 9000);
             
     },
     startRecording() {
