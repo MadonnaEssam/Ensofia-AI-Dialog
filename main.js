@@ -4,6 +4,7 @@ const BACKEND_URL = "https://stag.cv19.app:8449";
 const HOUSE_HOLD_NUMBER = "3";
 var messageList = []
 var stream = null
+var audio=null
 var recognizeMicrophone = require("watson-speech/speech-to-text/recognize-microphone");
 
 var context = {
@@ -22,7 +23,6 @@ function stripHtml(html) {
 
 function googleTTS(txt) {
     // this.muteSpeaker();
-    var audio = null,
 
         txt = stripHtml(txt);
     var self = this;
@@ -65,6 +65,7 @@ function googleTTS(txt) {
                 });
                 var url = window.URL.createObjectURL(blob);
                 self.audio = new Audio(); // path to file
+                
                 self.audio.src = url;
                 self.audio.play();
             }
@@ -131,7 +132,7 @@ function getSTT() {
         axios.post("https://api.ensofia.com:8446/calendarcv02/getSttToken").then(function (response) {
             //window.vaildToken = true
             window.sttToken = response.data.responseData.token
-            
+
             setTimeout(function(){
                 window.getSTTCalled = false;
                 getSTT();
