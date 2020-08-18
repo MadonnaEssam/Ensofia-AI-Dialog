@@ -3,7 +3,7 @@ var axios = require('axios');
 const BACKEND_URL = "https://stag.cv19.app:8449";
 const HOUSE_HOLD_NUMBER = "3";
 var messageList = []
-var stream= null
+var stream = null
 var recognizeMicrophone = require("watson-speech/speech-to-text/recognize-microphone");
 
 var context = {
@@ -123,40 +123,56 @@ function GoogleWrite(fileReader, callBack) {
             GoogleWrite(window.fileReader, callBack);
         }, 100);
     }
-}
+};
+
+function getSTT() {
+    if(!window.getSTTCalled){
+        window.getSTTCalled = true;
+        axios.post("https://api.ensofia.com:8446/calendarcv02/getSttToken").then(function (response) {
+            //window.vaildToken = true
+            window.sttToken = response.data.responseData.token
+            
+            setTimeout(function(){
+                window.getSTTCalled = false;
+                getSTT();
+            }, 30*60*1000);
+        });
+    }
+};
 module.exports = {
-    openMicWatson: function (backendURL, stopAudio,callBack1) {
+    openMicWatson: function (backendURL, stopAudio, callBack1) {
         var self = this;
         // self.micIsOn = true;
         stream = recognizeMicrophone({
-          accessToken: window.sttToken,
-          outputElement: "#output",
-          //object_mode: false
+            accessToken: window.sttToken,
+            outputElement: "#output",
+            //object_mode: false
         });
         stream.on("data", function (data) {
-          if (data.results[0] && data.results[0].final == true) {
-            self.hideButton = true;
-  
+            if (data.results[0] && data.results[0].final == true) {
+                self.hideButton = true;
+
+                stream.recognizeStream.stop();
+                stream.recognizeStream = null;
+                stream = null;
+                // self.micIsOn = false;
+                // console.log(data);
+                var msg = data.results[0].alternatives[0].transcript;
+                callBack1(msg)
+                self.ensofiaDialog(backendURL, msg, stopAudio,callBack1)
+            }
+        });
+        stream.on("error", function (err) {
             stream.recognizeStream.stop();
             stream.recognizeStream = null;
             stream = null;
-            // self.micIsOn = false;
-            // console.log(data);
-            var msg = data.results[0].alternatives[0].transcript;
-            callBack1(msg)
-            self.ensofiaDialog (backendURL, msg, stopAudio)          }
-        });
-        stream.on("error", function (err) {
-          stream.recognizeStream.stop();
-          stream.recognizeStream = null;
-          stream = null;
-          callBack1(err)
+            callBack1(err)
 
-        //   self.micIsOn = false;
-        //   self.hideButton = true;
-          // console.log(err);
+            //   self.micIsOn = false;
+            //   self.hideButton = true;
+            // console.log(err);
         });
-      },
+    },
     // stopRecording(backendURL, callBack) {
     //     window.rec.stop();
     //     window.gumStream.getAudioTracks()[0].stop();
@@ -167,7 +183,7 @@ module.exports = {
     //         var msgText=window.msgText
     //         self.ensofiaDialog(backendURL, msgText,callBack)
     //             }, 9000);
-            
+
     // },
     // startRecording() {
     //     var self = this;
@@ -199,11 +215,11 @@ module.exports = {
     //             console.error(err);
     //         });
     // },
-    ensofiaDialog: function (backendURL, msgText, stopAudio,callback) {
-        axios.post("https://api.ensofia.com:8446/calendarcv02/getSttToken").then(function (response) {
-            window.sttToken=response.data.responseData.token
-        })
-         window.stopAudio=stopAudio
+    ensofiaDialog: function (backendURL, msgText, stopAudio, callback) {
+        getSTT()
+
+        // }, 1000 * 60 * 2)
+        window.stopAudio = stopAudio
         if (msgText && msgText.trim() != "") {
             var msg = msgText;
             if (this.msgText !== "WELCOME_MSG") {
@@ -247,7 +263,7 @@ module.exports = {
                         }
                     }
                     if (window.stopAudio == false) {
-                    googleTTS(textSpeak);
+                        googleTTS(textSpeak);
                     }
 
                     messageList.push({
