@@ -3,6 +3,8 @@ var axios = require('axios');
 const BACKEND_URL = "https://stag.cv19.app:8449";
 const HOUSE_HOLD_NUMBER = "3";
 var messageList = []
+var stream= null
+var recognizeMicrophone = require("watson-speech/speech-to-text/recognize-microphone");
 
 var context = {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -119,54 +121,89 @@ function GoogleWrite(fileReader, callBack) {
         console.log(window.fileReader.readyState);
         setTimeout(function () {
             GoogleWrite(window.fileReader, callBack);
-        }, 300);
+        }, 100);
     }
 }
 module.exports = {
-    stopRecording(backendURL, callBack) {
-        window.rec.stop();
-        window.gumStream.getAudioTracks()[0].stop();
-
+    openMicWatson: function (backendURL, stopAudio,callBack1) {
         var self = this;
-        getGoogleCloudSpeechToText();
-        setTimeout(function () {
-            var msgText=window.msgText
-            self.ensofiaDialog(backendURL, msgText,callBack)
-                }, 9000);
+        // self.micIsOn = true;
+        stream = recognizeMicrophone({
+          accessToken: window.sttToken,
+          outputElement: "#output",
+          //object_mode: false
+        });
+        stream.on("data", function (data) {
+          if (data.results[0] && data.results[0].final == true) {
+            self.hideButton = true;
+  
+            stream.recognizeStream.stop();
+            stream.recognizeStream = null;
+            stream = null;
+            // self.micIsOn = false;
+            // console.log(data);
+            var msg = data.results[0].alternatives[0].transcript;
+            callBack1(msg)
+            self.ensofiaDialog (backendURL, msg, stopAudio)          }
+        });
+        stream.on("error", function (err) {
+          stream.recognizeStream.stop();
+          stream.recognizeStream = null;
+          stream = null;
+          callBack1(err)
+
+        //   self.micIsOn = false;
+        //   self.hideButton = true;
+          // console.log(err);
+        });
+      },
+    // stopRecording(backendURL, callBack) {
+    //     window.rec.stop();
+    //     window.gumStream.getAudioTracks()[0].stop();
+
+    //     var self = this;
+    //     getGoogleCloudSpeechToText();
+    //     setTimeout(function () {
+    //         var msgText=window.msgText
+    //         self.ensofiaDialog(backendURL, msgText,callBack)
+    //             }, 9000);
             
-    },
-    startRecording() {
-        var self = this;
-        console.log("recordButton clicked");
-        var constraints = {
-            audio: true,
-            video: false,
-        };
-        navigator.mediaDevices
-            .getUserMedia(constraints)
-            .then(function (stream) {
-                console.log(
-                    "getUserMedia() success, stream created, initializing Recorder.js ..."
-                );
-                var audioContext = new AudioContext();
+    // },
+    // startRecording() {
+    //     var self = this;
+    //     console.log("recordButton clicked");
+    //     var constraints = {
+    //         audio: true,
+    //         video: false,
+    //     };
+    //     navigator.mediaDevices
+    //         .getUserMedia(constraints)
+    //         .then(function (stream) {
+    //             console.log(
+    //                 "getUserMedia() success, stream created, initializing Recorder.js ..."
+    //             );
+    //             var audioContext = new AudioContext();
 
-                window.gumStream = stream;
+    //             window.gumStream = stream;
 
-                var input = audioContext.createMediaStreamSource(stream);
+    //             var input = audioContext.createMediaStreamSource(stream);
 
-                window.rec = new Recorder(input, {
-                    numChannels: 1,
-                });
+    //             window.rec = new Recorder(input, {
+    //                 numChannels: 1,
+    //             });
 
-                window.rec.record();
-                console.log("Recording started");
-            })
-            .catch(function (err) {
-                console.error(err);
-            });
-    },
-    ensofiaDialog: function (backendURL, msgText, callback) {
-
+    //             window.rec.record();
+    //             console.log("Recording started");
+    //         })
+    //         .catch(function (err) {
+    //             console.error(err);
+    //         });
+    // },
+    ensofiaDialog: function (backendURL, msgText, stopAudio,callback) {
+        axios.post("https://api.ensofia.com:8446/calendarcv02/getSttToken").then(function (response) {
+            window.sttToken=response.data.responseData.token
+        })
+         window.stopAudio=stopAudio
         if (msgText && msgText.trim() != "") {
             var msg = msgText;
             if (this.msgText !== "WELCOME_MSG") {
@@ -209,9 +246,9 @@ module.exports = {
 
                         }
                     }
-                    // if (self.stopAudio == false) {
+                    if (window.stopAudio == false) {
                     googleTTS(textSpeak);
-                    // }
+                    }
 
                     messageList.push({
                         author: "yours",

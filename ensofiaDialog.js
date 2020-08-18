@@ -7,7 +7,7 @@ var msg
 
 if (backendURL && messages) {
 	sofiaConversation.ensofiaDialog(backendURL, msg, callback);
-	sofiaConversation.startRecording();
+	sofiaConversation.openMicWatson();
 	sofiaConversation.stopRecording(backendURL);
 }
 else {

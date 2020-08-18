@@ -1,6 +1,6 @@
 {
   "name": "ensofia-ai",
-  "version": "4.9.0",
+  "version": "6.4.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.19.2",
-    "moment": "^2.26.0"
+    "moment": "^2.26.0",
+    "watson-speech": "^0.38.1"
   }
 }
