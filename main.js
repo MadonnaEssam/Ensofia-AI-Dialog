@@ -144,18 +144,17 @@ module.exports = {
     openMicWatson: function (backendURL, stopAudio, callBack1) {
         var self = this;
         // self.micIsOn = true;
-        stream = recognizeMicrophone({
+        window.stream = recognizeMicrophone({
             accessToken: window.sttToken,
-            outputElement: "#output",
-            //object_mode: false
+            outputElement: "#y",
         });
-        stream.on("data", function (data) {
+        window.stream.on("data", function (data) {
             if (data.results[0] && data.results[0].final == true) {
                 self.hideButton = true;
 
-                stream.recognizeStream.stop();
-                stream.recognizeStream = null;
-                stream = null;
+                window.stream.recognizeStream.stop();
+                window.stream.recognizeStream = null;
+                window.stream = null;
                 // self.micIsOn = false;
                 // console.log(data);
                 var msg = data.results[0].alternatives[0].transcript;
@@ -163,10 +162,10 @@ module.exports = {
                 self.ensofiaDialog(backendURL, msg, stopAudio,callBack1)
             }
         });
-        stream.on("error", function (err) {
-            stream.recognizeStream.stop();
-            stream.recognizeStream = null;
-            stream = null;
+        window.stream.on("error", function (err) {
+            window.stream.recognizeStream.stop();
+            window.stream.recognizeStream = null;
+            window.stream = null;
             callBack1(err)
 
             //   self.micIsOn = false;
